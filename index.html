@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Letterbox App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Pacifico&family=Shadows+Into+Light&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Indie Flower', cursive;
+      background: #fffafc;
+      padding: 20px;
+      text-align: center;
+    }
+    textarea, input, select, button {
+      margin: 10px;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .letter {
+      position: relative;
+      background: #ffe4e1;
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .letter img.sticker {
+      position: absolute;
+      width: 40px;
+    }
+    .heart { top: -10px; left: -10px; }
+    .star { bottom: -10px; right: -10px; }
+    .thumbnail {
+      margin-top: 10px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 480px;
+    }
+  </style>
+</head>
+<body>
+  <h1>💌 Letter Box</h1>
+  <input type="text" id="toInput" placeholder="To">
+  <input type="text" id="fromInput" placeholder="From"><br>
+  <select id="fontSelect">
+    <option value="Indie Flower">Indie Flower</option>
+    <option value="Pacifico">Pacifico</option>
+    <option value="Shadows Into Light">Shadows Into Light</option>
+  </select>
+  <select id="bgColorSelect">
+    <option value="#fff0f6">Pink</option>
+    <option value="#f0fff0">Mint</option>
+    <option value="#fef9e7">Beige</option>
+  </select>
+  <select id="stickerSelect">
+    <option value="hearts">Hearts</option>
+    <option value="stars">Stars</option>
+    <option value="both">Both</option>
+    <option value="none">None</option>
+  </select><br>
+  <input type="file" id="customStickerInput" accept="image/*" multiple><br>
+  <textarea id="messageInput" rows="5" placeholder="Write your message..."></textarea><br>
+  <input type="file" id="audioInput" accept="audio/*"><br>
+  <input type="text" id="spotifyInput" placeholder="Spotify link">
+  <input type="text" id="youtubeInput" placeholder="YouTube link">
+  <input type="text" id="appleInput" placeholder="Apple Music embed link"><br>
+  <button onclick="postMessage()">Post Message</button>
+  <button onclick="clearAllMessages()">Clear All</button>
+
+  <div id="letterList"></div>
+
+  <script>
+    function postMessage() {
+      const text = messageInput.value.trim();
+      const file = audioInput.files[0];
+      const spotify = spotifyInput.value.trim();
+      const youtube = youtubeInput.value.trim();
+      const apple = appleInput.value.trim();
+      const to = toInput.value.trim();
+      const from = fromInput.value.trim();
+      const font = fontSelect.value;
+      const bgColor = bgColorSelect.value;
+      const stickerType = stickerSelect.value;
+      const customStickerFiles = Array.from(document.getElementById('customStickerInput').files);
+
+      if (!text && !file && !spotify && !youtube && !apple && customStickerFiles.length === 0) return;
+
+      function handleStickerUploads(callback) {
+        const readers = [];
+        let results = [];
+        let count = 0;
+
+        if (customStickerFiles.length === 0) return callback([]);
+
+        customStickerFiles.forEach((file, index) => {
+          const reader = new FileReader();
+          readers.push(reader);
+          reader.onload = function(e) {
+            results[index] = e.target.result;
+            count++;
+            if (count === customStickerFiles.length) callback(results);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          handleStickerUploads((stickerURLs) => {
+            createLetter(text, e.target.result, spotify, youtube, apple, to, from, font, bgColor, stickerType, stickerURLs);
+          });
+        };
+        reader.readAsDataURL(file);
+      } else {
+        handleStickerUploads((stickerURLs) => {
+          createLetter(text, '', spotify, youtube, apple, to, from, font, bgColor, stickerType, stickerURLs);
+        });
+      }
+
+      messageInput.value = '';
+      audioInput.value = '';
+      spotifyInput.value = '';
+      youtubeInput.value = '';
+      appleInput.value = '';
+      toInput.value = '';
+      fromInput.value = '';
+      customStickerInput.value = '';
+    }
+
+    function createLetter(text, audioSrc, spotify, youtube, apple, to, from, font, bgColor, stickerType, customStickers = []) {
+      const div = document.createElement('div');
+      div.className = 'letter';
+      div.style.background = bgColor;
+      div.style.fontFamily = `'${font}', cursive`;
+
+      customStickers.forEach((src, i) => {
+        const sticker = document.createElement('img');
+        sticker.src = src;
+        sticker.className = 'sticker';
+        sticker.style.top = `${10 + i * 20}px`;
+        sticker.style.left = `${10 + i * 20}px`;
+        div.appendChild(sticker);
+      });
+
+      if (customStickers.length === 0 && stickerType !== 'none') {
+        if (stickerType === 'hearts' || stickerType === 'both') {
+          const heart = document.createElement('img');
+          heart.src = 'https://cdn-icons-png.flaticon.com/512/2589/2589175.png';
+          heart.className = 'sticker heart';
+          div.appendChild(heart);
+        }
+        if (stickerType === 'stars' || stickerType === 'both') {
+          const star = document.createElement('img');
+          star.src = 'https://cdn-icons-png.flaticon.com/512/929/929430.png';
+          star.className = 'sticker star';
+          div.appendChild(star);
+        }
+      }
+
+      div.innerHTML += `<strong>To:</strong> ${to || 'Someone'}<br><strong>From:</strong> ${from || 'Anonymous'}<br><br>${text}<br><br>`;
+
+      if (audioSrc) {
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.src = audioSrc;
+        div.appendChild(audio);
+      }
+
+      if (spotify.includes('spotify.com/track')) {
+        div.innerHTML += '<p style="font-style: italic;">Spotify track shared:</p>';
+        const link = document.createElement('a');
+        link.href = spotify;
+        link.textContent = '🎵 Open on Spotify';
+        link.target = '_blank';
+        div.appendChild(link);
+      }
+
+      if (youtube.includes('youtube.com') || youtube.includes('youtu.be')) {
+        const videoId = youtube.includes('watch?v=') ? youtube.split('watch?v=')[1] : youtube.split('/').pop();
+        div.innerHTML += '<p style="font-style: italic;">YouTube video shared:</p>';
+        const link = document.createElement('a');
+        link.href = youtube;
+        link.textContent = '▶️ Watch on YouTube';
+        link.target = '_blank';
+        div.appendChild(link);
+
+        const thumbnail = document.createElement('img');
+        thumbnail.src = `https://img.youtube.com/vi/${videoId}/0.jpg`;
+        thumbnail.alt = 'YouTube thumbnail';
+        thumbnail.className = 'thumbnail';
+        div.appendChild(thumbnail);
+      }
+
+      if (apple.includes('embed.music.apple.com')) {
+        div.innerHTML += '<p style="font-style: italic;">Apple Music track shared:</p>';
+        const link = document.createElement('a');
+        link.href = apple.replace('embed.', '');
+        link.textContent = '🎶 Listen on Apple Music';
+        link.target = '_blank';
+        div.appendChild(link);
+      }
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Delete';
+      delBtn.onclick = () => div.remove();
+      div.appendChild(document.createElement('br'));
+      div.appendChild(delBtn);
+
+      document.getElementById('letterList').prepend(div);
+    }
+
+    function clearAllMessages() {
+      if (confirm('Delete all letters?')) {
+        document.getElementById('letterList').innerHTML = '';
+      }
+    }
+  </script>
+</body>
+</html>
